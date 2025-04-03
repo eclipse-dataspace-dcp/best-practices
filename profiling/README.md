@@ -10,4 +10,4 @@ Profiles are designated by strings and are used inside the 6.6 `Credential Offer
 
 The two profiles `vc20-bssl/jwt` and `vc11-sl2021/jwt` are recommended by the authors and are therefore defined in the annex of the specification ([A. Profiles of the Decentralized Claims Protocol](https://eclipse-dataspace-dcp.github.io/decentralized-claims-protocol/v1.0-RC2/#profiles-of-the-decentralized-claims-protocol)).
 
-Throughout the specificaiton, there is also the definition and the `format` property. While the `format` specifies the used data model and revocation system, the `profile` property also covers the specification of the revocation system.
+Throughout the specificaiton, there is also the definition and the `format` property. While the `format` specifies the used data model and proof stack, the `profile` property additionally covers the specification of the revocation system.
