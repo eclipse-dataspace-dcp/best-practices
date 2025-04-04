@@ -1,2 +1,2 @@
-# best-practices
-This repository contains non-normative companion documents for adopters of the Eclipse Decentralized Claims Protocol (DCP)
+# Best Practices involving the Decentralized Claims Protocol
+This repository collects various material that involve extending, implementing and working with the Decentralized Claims Protocol.
