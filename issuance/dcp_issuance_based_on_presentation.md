@@ -1,0 +1,80 @@
+# Issuance Flow with Embedded Presentation
+
+## Executive Summary
+
+The Eclipse Decentralized Claims Protocol (DCP) v1.0 **explicitly supports** issuing credentials based on the presentation of existing credentials. This is achieved through the embedding of the Presentation Flow into the Issuance Flow. For the complete technical flow, please consider the following diagram.
+
+## Sequence Diagram
+```plantuml
+@startuml DCP_Credential_Issuance_with_Presentation_Requirement
+autonumber
+
+participant "Client\n(Holder)" as Client
+participant "Secure Token Service \n (STS Client)" as STS
+participant "Credential Service\n(CS)" as CS
+participant "Issuer Service\n(IS)" as Issuer
+participant "Secure Token Service \n (STS Issuer)" as STS_Issuer
+
+
+
+== Requesting a Credential Issuance ==
+
+Client -> Issuer: request Issuer Metadata
+activate Issuer
+Issuer --> Client: Issuer Metadata
+
+note left of Client
+the Client selects a credential
+to request from the Issuer
+and sets its scopes according
+to the Issuer Metadata
+end note
+
+Client -> STS : request token w/ scopes
+activate STS
+STS --> Client : Self-Issued ID Token (SI Token)\n incl. access token and scopes
+deactivate STS
+
+
+Client -> Issuer : CredentialRequestMessage\n w/ Client's SI Token
+Issuer -> Issuer: validate Client's SI Token, \nextract scopes
+
+note right of Issuer
+  The Issuer finds that scopes
+  are attached to the request
+  and checks whether the issuance
+  in the CredentialRequestMessage
+  requires/allows the presentation
+  of another credential
+end note
+
+Issuer-> Issuer: resolve DID → find CS endpoint
+
+Issuer --> Client : HTTP 201 Created\n+ Location header
+
+== Requesting a Presentation as Proof for Issuance ==
+
+Issuer -> STS_Issuer: request  token
+activate STS_Issuer
+STS_Issuer --> Issuer: Self-Issued ID Token (SI Token)
+deactivate STS_Issuer
+Issuer -> CS : PresentationQueryMessage\nw/ Issuer's SI Token\n and Client's access token
+activate CS
+CS --> Issuer: PresentationResponseMessage\nw/ VP
+deactivate CS
+
+Issuer -> Issuer : validate VP against issuance policy
+
+== (async) Issue Requested Credential ==
+Issuer -> STS_Issuer: request  token
+activate STS_Issuer
+STS_Issuer --> Issuer: Self-Issued ID Token (SI Token)
+deactivate STS_Issuer
+Issuer -> CS : CredentialMessage\nw/ Issuer's SI Token\n and Client's access token
+activate CS
+CS -> CS: store credentials
+CS --> Issuer: HTTP 2xx
+deactivate CS
+deactivate Issuer
+@enduml
+```
