@@ -1,0 +1,86 @@
+@startuml DCP_Credential_Offer_preceding_Issuance_with_Presentation
+autonumber
+
+participant "Secure Token Service\n(Holder)" as STS
+participant "Client\n(Holder)" as Client
+participant "Credential Service\n(Holder)" as CS
+participant "Issuer Service\n(Issuer)" as Issuer
+participant "Secure Token Service \n (Issuer)" as STS_Issuer
+
+== (issuer-initiated) Credential Offer ==
+
+note right of Issuer
+  An out-of-band trigger (e.g. key
+  rotation / revocation → reissue, or a
+  business event) prompts the Issuer to
+  offer a credential to the Holder.
+  The Issuer resolves the Holder's DID
+  to discover its Credential Service
+  endpoint.
+end note
+
+Issuer -> Issuer: resolve Holder DID → find CS endpoint
+
+Issuer -> STS_Issuer: request STS-token
+activate STS_Issuer
+STS_Issuer --> Issuer: STS-Token (may carry a fresh inner access token)
+deactivate STS_Issuer
+
+Issuer -> CS : POST /offers\nCredentialOfferMessage w/ STS-token\nissuer DID + credentials[] (each a\nCredentialObject, incl. issuancePolicy)
+activate CS
+note right of CS
+  The CredentialOfferMessage carries one or
+  more CredentialObjects. A CredentialObject
+  MAY embed an **issuancePolicy** (a
+  Presentation Definition) that signals the
+  Verifiable Presentation the Holder will be
+  REQUIRED to provide during issuance.
+end note
+CS <- CS: store / surface offer to Holder
+CS --> Issuer: HTTP 200 OK
+deactivate CS
+
+== Holder acts on the Offer ==
+
+note over Client, STS
+  The Holder decides to act on the offer notification.
+  It reads the offered CredentialObject(s)
+  and their ids from the stored offer
+  (sparse entries resolve against the
+  Issuer Metadata credentialsSupported list).
+  This interaction is not standardized and optional.
+end note
+
+Client -> CS : read stored offer
+activate CS
+CS --> Client : CredentialObject(s) w/ id + issuancePolicy
+deactivate CS
+
+note over Client, Issuer
+  From here the Holder runs the canonical Issuance Flow, referencing the offered
+  CredentialObject id(s). The Verifiable Presentation defined by the issuancePolicy
+  is provided as proof for issuance.
+end note
+
+Client -> STS: request STS token
+activate STS
+STS -> Client: response (may carry a\nfresh inner access token)
+deactivate STS
+
+Client -> Issuer: request credential(s) w/ STS-token\n(CredentialRequestMessage, credentials[].id from the offer)
+activate Issuer
+Issuer -> Issuer: resolve DID
+Client <- Issuer: ack
+
+Issuer -> STS_Issuer: request STS-token (with holder's inner access token, if present)
+activate STS_Issuer
+STS_Issuer --> Issuer: STS-Token (with holder's inner access token, if present)
+deactivate STS_Issuer
+
+CS <- Issuer: (async) write credential(s)\nw/ STS-token
+activate CS
+CS <- CS: Validate token and\nstore credentials
+deactivate CS
+deactivate Issuer
+
+@enduml
