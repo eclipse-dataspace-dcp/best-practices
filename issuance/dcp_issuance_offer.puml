@@ -21,12 +21,12 @@ end note
 
 Issuer -> Issuer: resolve Holder DID → find CS endpoint
 
-Issuer -> STS_Issuer: request token
+Issuer -> STS_Issuer: request STS-token
 activate STS_Issuer
-STS_Issuer --> Issuer: Self-Issued ID Token (SI Token)
+STS_Issuer --> Issuer: STS-Token (may carry a fresh inner access token)
 deactivate STS_Issuer
 
-Issuer -> CS : POST /offers\nCredentialOfferMessage\nw/ issuer DID + credentials[]\n(each a CredentialObject,\n incl. issuancePolicy)
+Issuer -> CS : POST /offers\nCredentialOfferMessage w/ STS-token\nissuer DID + credentials[] (each a\nCredentialObject, incl. issuancePolicy)
 activate CS
 note right of CS
   The CredentialOfferMessage carries one or
@@ -36,13 +36,13 @@ note right of CS
   Verifiable Presentation the Holder will be
   REQUIRED to provide during issuance.
 end note
-CS -> CS: store / surface offer to Holder
+CS <- CS: store / surface offer to Holder
 CS --> Issuer: HTTP 200 OK
 deactivate CS
 
 == Holder acts on the Offer ==
 
-note left of Client
+note over Client, STS
   The Holder decides to act on the offer notification.
   It reads the offered CredentialObject(s)
   and their ids from the stored offer
@@ -57,25 +57,29 @@ CS --> Client : CredentialObject(s) w/ id + issuancePolicy
 deactivate CS
 
 note over Client, Issuer
-  From here the Holder runs the canonical Issuance Flow,
-  referencing the offered CredentialObject id(s).
-  The Verifiable Presentation defined by the
-  issuancePolicy is provided as proof for issuance.
+  From here the Holder runs the canonical Issuance Flow, referencing the offered
+  CredentialObject id(s). The Verifiable Presentation defined by the issuancePolicy
+  is provided as proof for issuance.
 end note
 
-Client -> STS: request
+Client -> STS: request STS token
 activate STS
-STS -> Client: response incl. access token
+STS -> Client: response (may carry a\nfresh inner access token)
 deactivate STS
 
-Client -> Issuer: request credential(s) w/ self-issued ID token incl. access token\n(CredentialRequestMessage, credentials[].id from the offer)
+Client -> Issuer: request credential(s) w/ STS-token\n(CredentialRequestMessage, credentials[].id from the offer)
 activate Issuer
 Issuer -> Issuer: resolve DID
 Client <- Issuer: ack
 
-CS <- Issuer: (async) write credential(s)\nw/ self-issued ID token access token
+Issuer -> STS_Issuer: request STS-token (with holder's inner access token, if present)
+activate STS_Issuer
+STS_Issuer --> Issuer: STS-Token (with holder's inner access token, if present)
+deactivate STS_Issuer
+
+CS <- Issuer: (async) write credential(s)\nw/ STS-token
 activate CS
-CS -> CS: Validate token and\nstore credentials
+CS <- CS: Validate token and\nstore credentials
 deactivate CS
 deactivate Issuer
 
